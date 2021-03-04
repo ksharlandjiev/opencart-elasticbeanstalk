@@ -1,0 +1,80 @@
+Resources:
+    AWSEBRDSDBSecurityGroup:
+        Type: AWS::RDS::DBSecurityGroup
+        Properties:
+            EC2VpcId:
+                Fn::GetOptionSetting:
+                    OptionName: "VpcId"
+            GroupDescription: RDS DB VPC Security Group
+            DBSecurityGroupIngress:
+                - EC2SecurityGroupId:
+                    Ref: AWSEBSecurityGroup
+
+    AWSEBRDSDBSubnetGroup:
+        Type: AWS::RDS::DBSubnetGroup
+        Properties:
+            DBSubnetGroupDescription: RDS DB Subnet Group
+            SubnetIds:
+                Fn::Split:
+                    - ","
+                    - Fn::GetOptionSetting:
+                        OptionName: DBSubnets
+
+    AWSEBRDSDatabase:
+        Type: AWS::RDS::DBInstance
+        DeletionPolicy: Delete
+            
+        Properties:
+            PubliclyAccessible: false
+            MultiAZ: 
+                Fn::GetOptionSetting:
+                    OptionName: RDSMultiAZ            
+            Engine: mysql
+            EngineVersion: 5.7
+            BackupRetentionPeriod: 
+                Fn::GetOptionSetting:
+                    OptionName: RDSBackupRetentionPeriod             
+            DBName: 
+                Fn::GetOptionSetting:
+                    OptionName: RDSDBName             
+            MasterUsername: 
+                Fn::GetOptionSetting:
+                    OptionName: RDSUsername
+            MasterUserPassword: 
+                Fn::GetOptionSetting:
+                    OptionName: RDSPassword
+            AllocatedStorage: 
+                Fn::GetOptionSetting:
+                    OptionName: RDSStorage
+            DBInstanceClass: 
+                Fn::GetOptionSetting:
+                    OptionName: RDSInstanceType
+            DBSecurityGroups:
+                - Ref: AWSEBRDSDBSecurityGroup
+            DBSubnetGroupName:
+                Ref: AWSEBRDSDBSubnetGroup
+
+Outputs:
+    RDSId:
+        Description: "RDS instance identifier"
+        Value:
+            Ref: "AWSEBRDSDatabase"
+
+    RDSEndpointAddress:
+        Description: "RDS endpoint address"
+        Value:
+            Fn::GetAtt: ["AWSEBRDSDatabase", "Endpoint.Address"]
+
+    RDSEndpointPort:
+        Description: "RDS endpoint port"
+        Value:
+            Fn::GetAtt: ["AWSEBRDSDatabase", "Endpoint.Port"]
+
+    AWSEBRDSDatabaseProperties:
+        Description: Properties associated with the RDS database instance
+        Value:
+            Fn::Join:
+                - ","
+                - - Ref: AWSEBRDSDatabase
+                  - Fn::GetAtt: ["AWSEBRDSDatabase", "Endpoint.Address"]
+                  - Fn::GetAtt: ["AWSEBRDSDatabase", "Endpoint.Port"]
